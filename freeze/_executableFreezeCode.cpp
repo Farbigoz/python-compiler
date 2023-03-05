@@ -31,6 +31,7 @@ void InitPythonStandalone(int argc, wchar_t** argv) {
 
     config.module_search_paths_set = 1;
     config.isolated = 1;
+    config.user_site_directory = 1;
     //config.verbose = 3;
 
     PyConfig_SetArgv(&config, argc, argv);
@@ -48,9 +49,10 @@ void InitPythonStandalone(int argc, wchar_t** argv) {
     }
 
     // Append module search paths
-    PyWideStringList_Append(&config.module_search_paths, (wexec).c_str()); // L".\\");
-    PyWideStringList_Append(&config.module_search_paths, (wexec + L"\\bin").c_str()); // L".\\bin");
-    PyWideStringList_Append(&config.module_search_paths, (wexec + L"\\bin\\python.zip").c_str()); // L".\\bin\\python.zip");
+    PyWideStringList_Append(&config.module_search_paths, (wexec).c_str());
+    PyWideStringList_Append(&config.module_search_paths, (wexec + L"\\bin").c_str());
+    PyWideStringList_Append(&config.module_search_paths, (wexec + L"\\bin\\python.zip").c_str());
+    PyWideStringList_Append(&config.module_search_paths, (wexec + L"\\bin\\python.zip\\site-packages").c_str());
 
     // Existing table of built-in modules
     if (PyImport_ExtendInittab(inittab)) {

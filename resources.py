@@ -35,9 +35,14 @@ def _getExtensionName(fileName: str, withoutInit: bool = True) -> str:
 class BaseResource:
     supportExt: Optional[List[str]] = None
 
-    def __init__(self, inputFile: Optional[str] = None, outputFile: Optional[str] = None):
+    def __init__(self, inputFile: Optional[str] = None, outputFile: Optional[str] = None, homePath: Optional[str] = None):
         self.inputFile = inputFile
         self.outputFile = outputFile
+        self.homePath = homePath
+        self.inputFilePath = inputFile
+
+        if (self.inputFile is not None) and (self.homePath is not None):
+            self.inputFilePath = os.path.join(homePath, inputFile)
 
         if (inputFile is not None) and (self.supportExt is not None):
             fileExt = os.path.splitext(self.inputFile)[1]
@@ -233,14 +238,14 @@ class ExecResourceFile(BaseResource):
 
 
 class DataFile(BaseResource):
-    def __init__(self, inputFile: str):
-        super().__init__(inputFile)
+    def __init__(self, inputFile: str, homePath: Optional[str] = None):
+        super().__init__(inputFile, homePath=homePath)
 
-        if not os.path.exists(self.inputFile):
-            raise Exception(f"File \"{self.inputFile}\' not exist")
+        if not os.path.exists(self.inputFilePath):
+            raise Exception(f"File \"{self.inputFilePath}\' not exist")
 
     def clone(self, path: str):
-        print(f"Clone data file {self.inputFile}")
+        print(f"Clone data file {self.inputFilePath}")
 
         outputFile = os.path.join(path, self.inputFile)
         outputPath, _ = os.path.split(outputFile)
@@ -248,7 +253,7 @@ class DataFile(BaseResource):
         if not os.path.exists(outputPath):
             os.makedirs(outputPath, exist_ok=True)
 
-        with open(self.inputFile, "rb") as src:
+        with open(self.inputFilePath, "rb") as src:
             with open(outputFile, "wb") as dst:
                 dst.write(src.read())
 
@@ -265,12 +270,15 @@ _TBaseRes = TypeVar('_TBaseRes', bound=BaseResource)
 _TStr = Union[str, List['_TStr']]
 
 
-def ResourcesFromFileName(inputFile: _TStr, clone: bool = False) -> List[_TBaseRes]:
+def ResourcesFromFileName(inputFile: _TStr, clone: bool = False, homePath: Optional[str] = None) -> List[_TBaseRes]:
     resources: List[_TBaseRes] = []
+
+    if homePath is None:
+        homePath = ""
 
     if isinstance(inputFile, (list, tuple)):
         for _inputFile in inputFile:
-            resources.extend(ResourcesFromFileName(_inputFile, clone))
+            resources.extend(ResourcesFromFileName(_inputFile, clone, homePath=homePath))
 
         return resources
 
@@ -278,8 +286,8 @@ def ResourcesFromFileName(inputFile: _TStr, clone: bool = False) -> List[_TBaseR
     fileName, fileExt = os.path.splitext(fullFileName)
 
     if fileName == "*" or fileExt == ".*":
-        for fileInDir in os.listdir(fileDir):
-            if not os.path.isfile(os.path.join(fileDir, fileInDir)):
+        for fileInDir in os.listdir(os.path.join(homePath, fileDir)):
+            if not os.path.isfile(os.path.join(homePath, fileDir, fileInDir)):
                 continue
 
             fileInDirName, fileInDirExt = os.path.splitext(fileInDir)
@@ -290,10 +298,10 @@ def ResourcesFromFileName(inputFile: _TStr, clone: bool = False) -> List[_TBaseR
             if fileExt not in [".*", fileInDirExt]:
                 continue
 
-            resources.extend(ResourcesFromFileName(os.path.join(fileDir, fileInDir), clone))
+            resources.extend(ResourcesFromFileName(os.path.join(fileDir, fileInDir), clone, homePath=homePath))
 
     elif clone:
-        resources.append(DataFile(inputFile))
+        resources.append(DataFile(inputFile, homePath=homePath))
 
     else:
         for resCls in RESOURCE_CLASSES:

@@ -8,6 +8,7 @@ from distutils.dist import Distribution
 from distutils.command.build import build
 
 from .resources import PythonFile, CythonFile, CFile, ExecResourceFile, DataFile, ResourcesFromFileName
+from .deps import MakeDeps
 
 
 _TCompileRes = Union[PythonFile, CythonFile, CFile]
@@ -133,6 +134,7 @@ class Data(BaseProcessor):
 
     def __init__(self,
                  data: Union[str, List[str], DataFile, List[DataFile]],
+                 homePath: Optional[str] = None,
                  buildDir: Optional[str] = None):
 
         super().__init__(buildDir=buildDir)
@@ -145,7 +147,7 @@ class Data(BaseProcessor):
             if isinstance(_data, DataFile):
                 self.data.append(_data)
             elif isinstance(_data, str):
-                self.data.extend(ResourcesFromFileName(_data, clone=True))
+                self.data.extend(ResourcesFromFileName(_data, clone=True, homePath=homePath))
 
     def process(self):
         for data in self.data:
@@ -299,6 +301,9 @@ class Executable(BaseCompiler):
 
         self.standalone = standalone
 
+        if self.standalone:
+            self.resources.append(Data("*.dll", homePath=sys.exec_prefix))
+
     def process(self):
         modules: List[Union[PythonFile, CythonFile, CFile]] = []
         sources: List[str] = []
@@ -334,6 +339,9 @@ class Executable(BaseCompiler):
             sources.insert(0, self.main.inputFile)
 
         self._compileExec(sources, self.name)
+
+        if self.standalone:
+            MakeDeps(self.main.inputFile, os.path.join(self.buildCmd.build_platlib, "bin"))
 
 
 def ProcessAll(*processors: Union[BaseProcessor, List[BaseProcessor]], buildDir: Optional[str] = None, cleanCache: Optional[bool] = False):
