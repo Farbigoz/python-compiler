@@ -155,7 +155,7 @@ class CythonizeResource(BaseResourceWithName):
 
             self._setCythonizedCode(code)
 
-    def freezeExecutable(self, modules: Optional[List["CythonizeResource"]] = None):
+    def freezeExecutable(self, modules: Optional[List["CythonizeResource"]] = None, standalone: Optional[bool] = False):
         self._checkCythonized()
 
         if modules is None:
@@ -165,7 +165,7 @@ class CythonizeResource(BaseResourceWithName):
 
         code = self._getCythonizedCode()
 
-        code = AddExecutableFreezeCode(code, self.name, moduleNames)
+        code = AddExecutableFreezeCode(code, self.name, moduleNames, standalone=standalone)
 
         self._setCythonizedCode(code)
 
@@ -261,7 +261,7 @@ RESOURCE_CLASSES = [
 ]
 
 
-_TBaseRes = TypeVar('BaseRes', bound=BaseResource)
+_TBaseRes = TypeVar('_TBaseRes', bound=BaseResource)
 _TStr = Union[str, List['_TStr']]
 
 

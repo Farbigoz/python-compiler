@@ -22,6 +22,66 @@ static struct _inittab inittab[] = {
 
 extern int __pyx_module_is_main_main;
 
+
+void InitPythonStandalone(int argc, wchar_t** argv) {
+    PyConfig config;
+    PyStatus status;
+
+    PyConfig_InitPythonConfig(&config);
+
+    config.module_search_paths_set = 1;
+    config.isolated = 1;
+    //config.verbose = 3;
+
+    PyConfig_SetArgv(&config, argc, argv);
+
+    PyConfig_SetString(&config, &config.program_name, argv[0]);
+
+    // Get exec dir from argv[0]
+    std::wstring wexec(argv[0]);
+    while (wexec.length()) {
+        if (wexec.back() == L'\\' || wexec.back() == L'/') {
+            wexec.pop_back();
+            break;
+        }
+        wexec.pop_back();
+    }
+
+    // Append module search paths
+    PyWideStringList_Append(&config.module_search_paths, (wexec).c_str()); // L".\\");
+    PyWideStringList_Append(&config.module_search_paths, (wexec + L"\\bin").c_str()); // L".\\bin");
+    PyWideStringList_Append(&config.module_search_paths, (wexec + L"\\bin\\python.zip").c_str()); // L".\\bin\\python.zip");
+
+    // Existing table of built-in modules
+    if (PyImport_ExtendInittab(inittab)) {
+        std::cout << "No memory\n";
+        exit(1);
+    }
+
+    status = Py_InitializeFromConfig(&config);
+    if (status.exitcode != 0) {
+        std::cout << "Exit code " << status.exitcode << "\n";
+        exit(status.exitcode);
+    }
+
+    PyConfig_Clear(&config);
+}
+
+
+void InitPythonGlobal(int argc, wchar_t** argv) {
+    // Existing table of built-in modules
+    if (PyImport_ExtendInittab(inittab)) {
+        std::cout << "No memory\n";
+        exit(1);
+    }
+
+    Py_SetProgramName(argv[0]);
+    Py_Initialize();
+    PySys_SetArgv(argc, argv);
+}
+
+
+
 #if PY_MAJOR_VERSION < 3
 int main(int argc, char** argv) {
 #elif defined(WIN32) || defined(MS_WINDOWS)
@@ -42,18 +102,13 @@ int r = 0;
     m = fpgetmask();
     fpsetmask(m & ~FP_X_OFL);
 #endif
-    if (PyImport_ExtendInittab(inittab)) {
-        fprintf(stderr, "No memory\n");
-        exit(1);
-    }
-    Py_SetProgramName(argv[0]);
-    Py_Initialize();
-    PySys_SetArgv(argc, argv);
+
+    /* Python init func */
+
     PyRun_SimpleString(
         "import sys\n"
         "import importlib.abc\n"
         "import importlib.machinery\n"
-        "\n"
         "\n"
         "class Finder(importlib.abc.MetaPathFinder):\n"
         "    def find_spec(self, fullname, path, target=None):\n"

@@ -6,7 +6,9 @@ from typing import List, Optional
 _EXECUTABLE_FREEZE_CODE_PATH = os.path.join(os.path.split(__file__)[0], "_executableFreezeCode.cpp")
 
 
-def GetExecutableFreezeCode(executeModuleName: str, modulesNames: Optional[List[str]] = None) -> str:
+def GetExecutableFreezeCode(executeModuleName: str,
+                            modulesNames: Optional[List[str]] = None,
+                            standalone: Optional[bool] = False) -> str:
     if modulesNames is None:
         modulesNames = []
 
@@ -25,8 +27,16 @@ def GetExecutableFreezeCode(executeModuleName: str, modulesNames: Optional[List[
     code = code.replace("/* ModInit definitions */", modInitDef)
     code = code.replace("/* ModInit map */", modInitMap)
 
+    if standalone:
+        code = code.replace("/* Python init func */", "InitPythonStandalone(argc, argv);")
+    else:
+        code = code.replace("/* Python init func */", "InitPythonGlobal(argc, argv);")
+
     return code
 
 
-def AddExecutableFreezeCode(code: str, executeModuleName: str, modulesNames: List[str]) -> str:
-    return code + "\n\n\n" + GetExecutableFreezeCode(executeModuleName, modulesNames)
+def AddExecutableFreezeCode(code: str,
+                            executeModuleName: str,
+                            modulesNames: List[str],
+                            standalone: Optional[bool] = False) -> str:
+    return code + "\n\n\n" + GetExecutableFreezeCode(executeModuleName, modulesNames, standalone=standalone)

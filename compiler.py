@@ -70,7 +70,7 @@ class BaseCompiler(BaseProcessor):
         if libraryDirs is None:
             libraryDirs = []
 
-        self.compiler = new_compiler(verbose=1)
+        self.compiler = new_compiler()
 
         self.incDirs = [PYTHON_INCLUDE_DIR]
         self.libDirs = [PYTHON_LIBS_DIR]
@@ -263,6 +263,7 @@ class Executable(BaseCompiler):
                  name: Optional[str] = None,
                  includeDirs: Optional[List[str]] = None,
                  libraryDirs: Optional[List[str]] = None,
+                 standalone: Optional[bool] = None,
                  buildDir: Optional[str] = None):
 
         super().__init__(includeDirs=includeDirs, libraryDirs=libraryDirs, buildDir=buildDir)
@@ -296,6 +297,8 @@ class Executable(BaseCompiler):
         self.main = main
         self.name = name
 
+        self.standalone = standalone
+
     def process(self):
         modules: List[Union[PythonFile, CythonFile, CFile]] = []
         sources: List[str] = []
@@ -324,7 +327,7 @@ class Executable(BaseCompiler):
 
         if isinstance(self.main, (PythonFile, CythonFile)):
             self.main.cythonize()
-            self.main.freezeExecutable(modules)
+            self.main.freezeExecutable(modules, standalone=self.standalone)
             sources.insert(0, self.main.outputFile)
 
         elif isinstance(self.main, CFile):
