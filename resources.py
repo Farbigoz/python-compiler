@@ -160,7 +160,10 @@ class CythonizeResource(BaseResourceWithName):
 
             self._setCythonizedCode(code)
 
-    def freezeExecutable(self, modules: Optional[List["CythonizeResource"]] = None, standalone: Optional[bool] = False):
+    def freezeExecutable(self,
+                         modules: Optional[List["CythonizeResource"]] = None,
+                         standalone: Optional[bool] = False,
+                         pythonDepsDir: Optional[str] = None):
         self._checkCythonized()
 
         if modules is None:
@@ -170,7 +173,7 @@ class CythonizeResource(BaseResourceWithName):
 
         code = self._getCythonizedCode()
 
-        code = AddExecutableFreezeCode(code, self.name, moduleNames, standalone=standalone)
+        code = AddExecutableFreezeCode(code, self.name, moduleNames, standalone=standalone, pythonDepsDir=pythonDepsDir)
 
         self._setCythonizedCode(code)
 

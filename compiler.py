@@ -266,6 +266,7 @@ class Executable(BaseCompiler):
                  includeDirs: Optional[List[str]] = None,
                  libraryDirs: Optional[List[str]] = None,
                  standalone: Optional[bool] = None,
+                 pythonDepsDir: Optional[str] = None,
                  buildDir: Optional[str] = None):
 
         super().__init__(includeDirs=includeDirs, libraryDirs=libraryDirs, buildDir=buildDir)
@@ -300,6 +301,7 @@ class Executable(BaseCompiler):
         self.name = name
 
         self.standalone = standalone
+        self.pythonDepsDir = pythonDepsDir
 
         if self.standalone:
             self.resources.append(Data("*.dll", homePath=sys.exec_prefix))
@@ -332,7 +334,7 @@ class Executable(BaseCompiler):
 
         if isinstance(self.main, (PythonFile, CythonFile)):
             self.main.cythonize()
-            self.main.freezeExecutable(modules, standalone=self.standalone)
+            self.main.freezeExecutable(modules, standalone=self.standalone, pythonDepsDir=self.pythonDepsDir)
             sources.insert(0, self.main.outputFile)
 
         elif isinstance(self.main, CFile):
@@ -341,7 +343,7 @@ class Executable(BaseCompiler):
         self._compileExec(sources, self.name)
 
         if self.standalone:
-            MakeDeps(self.main.inputFile, os.path.join(self.buildCmd.build_platlib, "bin"))
+            MakeDeps(self.main.inputFile, os.path.join(self.buildCmd.build_platlib, self.pythonDepsDir or "bin"))
 
 
 def ProcessAll(*processors: Union[BaseProcessor, List[BaseProcessor]], buildDir: Optional[str] = None, cleanCache: Optional[bool] = False):

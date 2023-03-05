@@ -8,7 +8,8 @@ _EXECUTABLE_FREEZE_CODE_PATH = os.path.join(os.path.split(__file__)[0], "_execut
 
 def GetExecutableFreezeCode(executeModuleName: str,
                             modulesNames: Optional[List[str]] = None,
-                            standalone: Optional[bool] = False) -> str:
+                            standalone: Optional[bool] = False,
+                            pythonDepsDir: Optional[str] = None) -> str:
     if modulesNames is None:
         modulesNames = []
 
@@ -32,11 +33,15 @@ def GetExecutableFreezeCode(executeModuleName: str,
     else:
         code = code.replace("/* Python init func */", "InitPythonGlobal(argc, argv);")
 
+    if pythonDepsDir is not None:
+        code = code.replace("L\"\\\\bin", f"L\"\\\\{pythonDepsDir}")
+
     return code
 
 
 def AddExecutableFreezeCode(code: str,
                             executeModuleName: str,
                             modulesNames: List[str],
-                            standalone: Optional[bool] = False) -> str:
-    return code + "\n\n\n" + GetExecutableFreezeCode(executeModuleName, modulesNames, standalone=standalone)
+                            standalone: Optional[bool] = False,
+                            pythonDepsDir: Optional[str] = None) -> str:
+    return code + "\n\n\n" + GetExecutableFreezeCode(executeModuleName, modulesNames, standalone=standalone, pythonDepsDir=pythonDepsDir)
